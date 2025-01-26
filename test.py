@@ -199,7 +199,7 @@ def extract_entities(text):
         entities["Currency"] = None
 
     # Extract Issue Date
-    match = re.search(r"Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})", text, re.IGNORECASE)
+    match = re.search(r"Issuance\s*['’‘]?\s*Date[:\s]*([\d]{2}-[\d]{2}-[\d]{4})", text, re.IGNORECASE)
     if match:
         entities["Issue Date"] = match.group(1).strip()
     else:
@@ -220,7 +220,7 @@ def extract_entities(text):
         entities["Applicant Country"] = None
 
     # Extract Issuing Bank Name
-    matches = re.findall(r"made by\s*(.*?),", text, re.IGNORECASE)
+    matches = re.findall(r"(?:This Guarantee is made by|We)\s+([A-Za-z\s]+?)(?:,\s*a\s*company|Limited|Bank)", text, re.IGNORECASE)
     if matches:
         entities["Issuing Bank Name"] = matches
     else:
@@ -259,8 +259,8 @@ def extract_entities(text):
 
 def main():
     # Input PDF file
-    # pdf_file = "BG sample 3.pdf"
-    pdf_file = "PS-7.pdf"
+    pdf_file = "BG sample 3.pdf"
+    # pdf_file = "PS-7.pdf"
     use_ocr = True  # Set to True to use OCR extraction
     if not os.path.exists(pdf_file):
         logging.error(f"The file {pdf_file} does not exist.")

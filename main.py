@@ -199,7 +199,7 @@ def extract_entities(text):
         entities["Currency"] = None
 
     # Extract Issue Date
-    match = re.search(r"Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})", text, re.IGNORECASE)
+    match = re.search(r"Issuance\s*['’‘]?\s*Date[:\s]*([\d]{2}-[\d]{2}-[\d]{4})", text, re.IGNORECASE)
     if match:
         entities["Issue Date"] = match.group(1).strip()
     else:
@@ -220,23 +220,23 @@ def extract_entities(text):
         entities["Applicant Country"] = None
 
     # Extract Issuing Bank Name
-    matches = re.findall(r"made by\s*(.*?),", text, re.IGNORECASE)
+    matches = re.search(r"(?:made\s+by|We)\s*([\w\s]+)(?:,|\s+)", text, re.IGNORECASE)
     if matches:
-        entities["Issuing Bank Name"] = matches
+        entities["Issuing Bank Name"] = matches.group(1).strip()
     else:
         entities["Issuing Bank Name"] = None
 
     # Extract BG Amount (in Words)
-    match = re.search(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE)
+    match = re.search(r"Rupees\s*([\w\s]+)\s*[.]?Only", text, re.IGNORECASE)
     if match:
         entities["BG Amount (in Words)"] = match.group(1).strip()
     else:
         entities["BG Amount (in Words)"] = None
 
     # Extract BG Amount (in Numbers)
-    matches = re.findall(r"(\d[0-9],\d[0-9]*)", text, re.IGNORECASE)
+    matches = re.search(r"(?:Rs \. ?|INR)\s*([\d,]+(?:\s*,\s*\d{2,3})*)\s*(?:/-)?", text, re.IGNORECASE)
     if matches:
-        entities["BG Amount (in Numbers)"] = list(set(matches))
+        entities["BG Amount (in Numbers)"] = matches.group(1).strip().replace(' ','')
     else:
         entities["BG Amount (in Numbers)"] = None
 
