@@ -7,12 +7,30 @@ import fitz  # PyMuPDF
 import pytesseract
 from PIL import Image
 import io
+import cv2
+import numpy as np
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Set Tesseract path if needed (only for Windows)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Change to your Tesseract path
+
+
+def preprocess_image(image):
+    """Preprocess image for better OCR results."""
+    # Convert image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Apply Gaussian blur to reduce noise and improve thresholding result
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Apply adaptive thresholding to get a binary image
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY_INV, 11, 2)
+    # Perform morphological operations to remove noise
+    kernel = np.ones((1, 1), np.uint8)
+    morphed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    return morphed
 
 
 def extract_text_from_pdf(pdf_file, use_ocr=False):
@@ -37,9 +55,16 @@ def extract_text_using_ocr(pdf_file):
     extracted_text = ""
     for page_num in range(len(pdf_document)):
         page = pdf_document[page_num]
-        pix = page.get_pixmap()
-        img = Image.open(io.BytesIO(pix.tobytes())).convert('L')  # Convert to grayscale for better OCR accuracy
-        text = pytesseract.image_to_string(img, lang='eng')
+        # Increase DPI for better quality images
+        pix = page.get_pixmap(dpi=300)  # Set DPI to 300
+        img = Image.open(io.BytesIO(pix.tobytes())).convert('RGB')  # Convert to RGB for better processing
+        img_cv = np.array(img)  # Convert PIL image to OpenCV format
+        # Preprocess the image
+        processed_img = preprocess_image(img_cv)
+        # Convert back to PIL Image for Tesseract
+        processed_img_pil = Image.fromarray(processed_img)
+        # Perform OCR on the preprocessed image
+        text = pytesseract.image_to_string(processed_img_pil, lang='eng', config='--psm 6 --oem 3')
         extracted_text += text + "\n"
     return extracted_text
 
@@ -70,13 +95,11 @@ def split_text_into_paragraphs(text):
     sentences = re.split(r'(?<=[.!?]) +', text.strip())
     paragraphs = []
     current_paragraph = []
-
     for i, sentence in enumerate(sentences):
         current_paragraph.append(sentence)
         if len(current_paragraph) == 3 or i == len(sentences) - 1:
             paragraphs.append(' '.join(current_paragraph))
             current_paragraph = []
-
     return paragraphs
 
 
@@ -87,6 +110,49 @@ def save_text_to_docx(paragraphs, docx_file_name):
         doc.add_paragraph(para)
     doc.save(docx_file_name)
     logging.info(f"Document saved to {docx_file_name}")
+
+
+def extract_and_standardize_date(text):
+    """Extract and standardize dates using regular expressions."""
+
+    # Pattern for extracting dates in "DD Month YYYY" format with possible irregularities (like quotes)
+    match = re.search(r'claims can be lodged till\s*(\d{1,2})[" ]+\s*([A-Za-z]+)\s*(\d{4})', text, re.IGNORECASE)
+    if match:
+        day = match.group(1).strip()
+        month_name = match.group(2).strip()
+        year = match.group(3).strip()
+
+        # Convert month name to month number
+        try:
+            month_number = datetime.strptime(month_name, "%B").month  # Full month name
+        except ValueError:
+            try:
+                month_number = datetime.strptime(month_name, "%b").month  # Abbreviated month name
+            except ValueError:
+                return None
+
+        # Format the date as DD-MM-YYYY
+        standardized_date = f"{day.zfill(2)}-{str(month_number).zfill(2)}-{year}"
+        return standardized_date
+
+    # Pattern for extracting dates in "Expiry Date i.e. DD-MM-YYYY" format
+    match = re.search(r'Expiry Date.*?(\d{2})[-.](\d{2})[-.](\d{4})', text, re.IGNORECASE)
+    if match:
+        day = match.group(1).strip()
+        month = match.group(2).strip()
+        year = match.group(3).strip()
+        standardized_date = f"{day}-{month}-{year}"
+        return standardized_date
+
+    # Pattern for extracting dates in "DD-MM-YYYY" or "DD/MM/YYYY" format
+    matches = re.findall(r'\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b', text)
+    if matches:
+        for match in matches:
+            day, month, year = match
+            standardized_date = f"{day.zfill(2)}-{month.zfill(2)}-{year}"
+            return standardized_date
+
+    return None
 
 
 def extract_entities(text):
@@ -101,27 +167,26 @@ def extract_entities(text):
         entities["Beneficiary Name"] = None
 
     # Extract Applicant Name
-    match = re.search(r"M/s[ .]+([A-Za-z\s]+?)(?:,|\s+and|\shaving)", text, re.IGNORECASE)
-    entities["Applicant Name"] = match.group(1).strip()
+    match = re.search(r"M/s[ .]+([A-Za-z\s]+?)(?:,|\s+and|\shaving|\.|$)", text, re.IGNORECASE)
+    entities["Applicant Name"] = match.group(1).strip() if match else None
 
     # Extract BG Number
-    match = re.search(r"(BG NO|BG Number)[:\-\s]?\s*([\w\d]+)", text, re.IGNORECASE)
+    match = re.search(r"(?:BG\s*NO|BG\s*Number)[:\-\s]?\s*([\w\d]+)", text, re.IGNORECASE)
     if match:
-        entities["BG Number"] = match.group(2).strip()
+        entities["BG Number"] = match.group(1).strip()
     else:
         entities["BG Number"] = None
 
-    # Extract Claim Date
-    matches = re.findall(r"i\.e\.([\d]{1,2}[-/][\d]{1,2}[-/][\d]{4})", text, re.IGNORECASE)
-    if matches:
-        entities["Claim Date"] = matches
+    # Extract Claim Date using new function
+    claim_date = extract_and_standardize_date(text)
+    if claim_date:
+        entities["Claim Date"] = claim_date.strip()
     else:
         entities["Claim Date"] = None
 
-    # Extract Expiry Date
-    matches = re.findall(r"till\s*([\d]{1,2}[-/][\d]{1,2}[-/][\d]{4})", text, re.IGNORECASE)
-    if matches:
-        entities["Expiry Date"] = matches
+    match = re.search(r"(?:till|i\.e\.|until)\s*([\d]{1,2}[-/][\d]{1,2}[-/][\d]{4})", text, re.IGNORECASE)
+    if match:
+        entities["Expiry Date"] =match.group(1).strip()
     else:
         entities["Expiry Date"] = None
 
@@ -133,9 +198,9 @@ def extract_entities(text):
         entities["Currency"] = None
 
     # Extract Issue Date
-    matches = re.search(r"Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})", text, re.IGNORECASE)
-    if matches:
-        entities["Issue Date"] = matches.group(1).strip()
+    match = re.search(r"Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})", text, re.IGNORECASE)
+    if match:
+        entities["Issue Date"] = match.group(1).strip()
     else:
         entities["Issue Date"] = None
 
@@ -161,9 +226,9 @@ def extract_entities(text):
         entities["Issuing Bank Name"] = None
 
     # Extract BG Amount (in Words)
-    matches = re.search(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE).group(1).strip()
-    if matches:
-        entities["BG Amount (in Words)"] = (matches)
+    match = re.search(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE)
+    if match:
+        entities["BG Amount (in Words)"] = match.group(1).strip()
     else:
         entities["BG Amount (in Words)"] = None
 
@@ -193,37 +258,30 @@ def extract_entities(text):
 
 def main():
     # Input PDF file
-    pdf_file = "BG sample 3.pdf"
-    # pdf_file = "PS-7.pdf"
+    # pdf_file = "BG sample 3.pdf"
+    pdf_file = "PS-7.pdf"
     use_ocr = True  # Set to True to use OCR extraction
-
     if not os.path.exists(pdf_file):
         logging.error(f"The file {pdf_file} does not exist.")
         return
-
     # Extract text from the PDF file (using OCR if needed)
     text = extract_text_from_pdf(pdf_file, use_ocr=use_ocr)
     if not text:
         logging.warning("No text extracted from the PDF.")
         return
-
     # Clean the text
     text = clean_text(text)
-
     # Save the extracted text to a .txt file
     txt_file_name = os.path.splitext(pdf_file)[0] + ".txt"
     save_text_to_file(text, txt_file_name)
-
     # Split text into paragraphs
     paragraphs = split_text_into_paragraphs(text)
     logging.info("\nParagraphs:")
     for i, para in enumerate(paragraphs, 1):
         logging.info(f"Paragraph {i}: {para}\n")
-
     # Save the paragraphs to a .docx file
     docx_file_name = os.path.splitext(pdf_file)[0] + ".docx"
     save_text_to_docx(paragraphs, docx_file_name)
-
     # Extract entities
     entities = extract_entities(text)
     logging.info("\nExtracted Entities:")
