@@ -191,9 +191,10 @@ def extract_entities(text):
         entities["Expiry Date"] = None
 
     # Extract Currency
-    matches = re.findall(r"INR|EUR|USD|GBP", text, re.IGNORECASE)
+    matches = re.search(r"(?i)\b(?:Rs .|INR)\s*([\d,]+)(?:\s*/-)?\b", text, re.IGNORECASE)
     if matches:
-        entities["Currency"] = list(set(matches))
+        entities["Currency"] = "INR"
+
     else:
         entities["Currency"] = None
 
