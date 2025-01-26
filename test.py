@@ -101,11 +101,8 @@ def extract_entities(text):
         entities["Beneficiary Name"] = None
 
     # Extract Applicant Name
-    match = re.search(r"(?:Applicant|Bidder|M/s)\.?\s*([\w\s&'-]+?(?=,|having|and|with|$))", text, re.IGNORECASE)
-    if match:
-        entities["Applicant Name"] = match.group(1).strip()
-    else:
-        entities["Applicant Name"] = None
+    match = re.search(r"M/s[ .]+([A-Za-z\s]+?)(?:,|\s+and|\shaving)", text, re.IGNORECASE)
+    entities["Applicant Name"] = match.group(1).strip()
 
     # Extract BG Number
     match = re.search(r"(BG NO|BG Number)[:\-\s]?\s*([\w\d]+)", text, re.IGNORECASE)
@@ -136,9 +133,9 @@ def extract_entities(text):
         entities["Currency"] = None
 
     # Extract Issue Date
-    matches = re.findall(r"Issuance Date[:\-]?\s*([\d]{1,2}[-/][\d]{1,2}[-/][\d]{4})", text, re.IGNORECASE)
+    matches = re.search(r"Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})", text, re.IGNORECASE)
     if matches:
-        entities["Issue Date"] = list(set(matches))
+        entities["Issue Date"] = matches.group(1).strip()
     else:
         entities["Issue Date"] = None
 
@@ -164,9 +161,9 @@ def extract_entities(text):
         entities["Issuing Bank Name"] = None
 
     # Extract BG Amount (in Words)
-    matches = re.findall(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE)
+    matches = re.search(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE).group(1).strip()
     if matches:
-        entities["BG Amount (in Words)"] = list(set(matches))
+        entities["BG Amount (in Words)"] = (matches)
     else:
         entities["BG Amount (in Words)"] = None
 
@@ -196,7 +193,8 @@ def extract_entities(text):
 
 def main():
     # Input PDF file
-    pdf_file = "PS-7.pdf"  # Replace with your PDF file name
+    pdf_file = "BG sample 3.pdf"
+    # pdf_file = "PS-7.pdf"
     use_ocr = True  # Set to True to use OCR extraction
 
     if not os.path.exists(pdf_file):

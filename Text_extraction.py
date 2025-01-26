@@ -1,15 +1,22 @@
 import re
 
 # Sample texts
-sample1 = "Applicant Name: M/s ACME Limited and having its registered office at Grant House, 2nd Floor, Uppal Hyderabad"
-sample2 = "Applicant Name: M/s Tango Textiles, having its registered office at Hiranandani, Lake Road, Powai, Mumbai"
+sample1 = "Issuance Date 16-1-2025"
+sample2 = "Issuance Date: 30-11-2022"
 
-# Updated regex for Applicant Name
-pattern = r"(?:Applicant|Bidder|M/s)\.?\s*([\w\s&'-]+?(?=,|having|and|with|$))"
+# Regular expression pattern to match the issuance date
+pattern = r'Issuance Date[: ]+(\d{1,2}-\d{1,2}-\d{4})'
 
-# Extracting applicant names
-applicant1 = re.search(pattern, sample1).group(1).strip()
-applicant2 = re.search(pattern, sample2).group(1).strip()
+# Function to extract issuance date
+def extract_issuance_date(text):
+    match = re.search(pattern, text)
+    if match:
+        return match.group(1).strip()
+    return None
 
-print("Sample 1 Applicant Name:", applicant1)
-print("Sample 2 Applicant Name:", applicant2)
+# Extracting issuance dates from the samples
+issuance_date1 = extract_issuance_date(sample1)
+issuance_date2 = extract_issuance_date(sample2)
+
+print("Issuance Date in sample1:", issuance_date1)
+print("Issuance Date in sample2:", issuance_date2)
