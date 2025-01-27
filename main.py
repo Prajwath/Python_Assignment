@@ -242,16 +242,16 @@ def extract_entities(text):
         entities["BG Amount (in Numbers)"] = None
 
     # Extract Applicant Address
-    matches = re.findall(r"M/s\.\s*[A-Za-z\s,&]+,\s*.*?at\s*(.+)", text, re.IGNORECASE)
+    matches = re.search(r"(?:registered office at|it’s registered office at)\s*([\w\s,\-\.]+?)(?:\s*\(|\.|$)", text, re.IGNORECASE)
     if matches:
-        entities["Applicant Address"] = matches
+        entities["Applicant Address"] = matches.group(1).strip()
     else:
         entities["Applicant Address"] = None
 
     # Extract Beneficiary Address
-    matches = re.findall(r"Beneficiary Address:\s*(.*?)[.\n]", text, re.IGNORECASE)
+    matches = re.search(r"(?:[A-Za-z\s]+,\s)?((?:[A-Za-z\s]+,\s[A-Za-z\s]+,\s\d{6})|(?:\d+\s[A-Za-z\s\.]+,\s[A-Za-z\s]+,\s[A-Za-z\s\.]+\s[A-Za-z\s]+-\d{6}))", text, re.IGNORECASE)
     if matches:
-        entities["Beneficiary Address"] = matches
+        entities["Beneficiary Address"] = matches.group(1).strip()
     else:
         entities["Beneficiary Address"] = None
 
@@ -260,8 +260,8 @@ def extract_entities(text):
 
 def main():
     # Input PDF file
-    # pdf_file = "BG sample 3.pdf"
-    pdf_file = "PS-7.pdf"
+    pdf_file = "BG sample 3.pdf"
+    # pdf_file = "PS-7.pdf"
     use_ocr = True  # Set to True to use OCR extraction
     if not os.path.exists(pdf_file):
         logging.error(f"The file {pdf_file} does not exist.")
