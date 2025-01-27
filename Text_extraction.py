@@ -1,24 +1,40 @@
 import re
 
-def extract_amount(text):
-    """Extract the amount using a regular expression."""
-    # Regex pattern to capture the amount after "Rs" or "INR"
-    match = re.search(r"(?:Rs \. ?|INR|Rs )\s*([\d,]+(?:\s*,\s*\d{2,3})*)\s*(?:/-)?", text, re.IGNORECASE)
-    if match:
-        return match.group(1).strip().replace(' ', '')  # Remove any spaces in the amount
-    else:
-        return None
+# Define the mapping of states/cities to countries
+state_to_country = {
+    "Mumbai": "India",
+    "Hyderabad": "India",
+    "Delhi": "India",
+    "Goa": "India",
+    "Chennai": "India",
+    "Kolkata": "India",
+    "Bangalore": "India",
+}
+
+
+# Function to extract country or map state to country
+def extract_country(address):
+    # Regex patterns
+    country_pattern = r"(?i)\b(India|[A-Z][a-z]+)\b"
+    state_pattern = r"(?i)\b(Mumbai|Hyderabad|Delhi|Goa|Chennai|Kolkata|Bangalore|[A-Z][a-z]+)\b"
+
+    # Check for country in address
+    country_match = re.search(country_pattern, address)
+    if country_match:
+        return country_match.group(0)
+
+    # If no country, check for state/city and map to country
+    state_match = re.search(state_pattern, address)
+    if state_match:
+        state = state_match.group(0)
+        return state_to_country.get(state, "Unknown Country")
+
+    return "Country not found"
+
 
 # Test samples
-sample1 = "Nominated Authority an amount of Rs . 25 ,05 ,000"
-sample2 = "aggregate a sum of INR 22 ,000/-"
-sample3 = "another sum of Rs 45,000"  # No trailing /-
+sample1 = "having it’s registered office at A207 , Eastern Business District , Bhandup W , Mumbai 400078"
+sample2 = "registered office at Grant House , 2nd Floor , Uppal Hyderabad 500013 India ."
 
-# Extract amount
-amount1 = extract_amount(sample1)
-amount2 = extract_amount(sample2)
-amount3 = extract_amount(sample3)
-
-print(f"Extracted Amount from sample1: {amount1}")
-print(f"Extracted Amount from sample2: {amount2}")
-print(f"Extracted Amount from sample3: {amount3}")
+print(extract_country(sample1))  # Output: India
+print(extract_country(sample2))  # Output: India

@@ -260,8 +260,8 @@ def extract_entities(text):
 
 def main():
     # Input PDF file
-    pdf_file = "BG sample 3.pdf"
-    # pdf_file = "PS-7.pdf"
+    # pdf_file = "BG sample 3.pdf"
+    pdf_file = "PS-7.pdf"
     use_ocr = True  # Set to True to use OCR extraction
     if not os.path.exists(pdf_file):
         logging.error(f"The file {pdf_file} does not exist.")
