@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extracted Entities</title>
-    <style>
-        /* General Body Styling */
-    body {
+/* General Body Styling */
+body {
     font-family: 'Arial', sans-serif;
     background-color: #f9f9f9;
     color: #333;
@@ -75,30 +68,3 @@ h2 {
         font-size: 14px;
     }
 }
-
-    </style>
-
-
-</head>
-<body>
-    <div class="container">
-        <h2>Extracted Entities</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Entity</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for key, value in entities.items() %}
-                    <tr>
-                        <td>{{ key }}</td>
-                        <td>{{ value if value else 'Not Found' }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>

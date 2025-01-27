@@ -5,10 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload PDF</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        input[type="file"] { display: block; margin: 20px 0; }
-        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        /* General Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Container */
+.container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Heading */
+h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #007BFF;
+}
+
+/* File Input */
+input[type="file"] {
+    display: block;
+    margin: 20px auto;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* File Input Hover */
+input[type="file"]:hover {
+    border-color: #007BFF;
+}
+
+/* Submit Button */
+button {
+    padding: 12px 20px;
+    background-color: #4CAF50;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Button Hover Effect */
+button:hover {
+    background-color: #45a049;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    button {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+}
+
     </style>
 </head>
 <body>
