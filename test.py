@@ -10,6 +10,7 @@ import io
 import cv2
 import numpy as np
 from datetime import datetime
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -220,23 +221,23 @@ def extract_entities(text):
         entities["Applicant Country"] = None
 
     # Extract Issuing Bank Name
-    matches = re.findall(r"(?:This Guarantee is made by|We)\s+([A-Za-z\s]+?)(?:,\s*a\s*company|Limited|Bank)", text, re.IGNORECASE)
+    matches = re.search(r"(?:made\s+by|We)\s*([\w\s]+)(?:,|\s+)", text, re.IGNORECASE)
     if matches:
-        entities["Issuing Bank Name"] = matches
+        entities["Issuing Bank Name"] = matches.group(1).strip()
     else:
         entities["Issuing Bank Name"] = None
 
     # Extract BG Amount (in Words)
-    match = re.search(r"\(Rupees([A-Za-z\s]+)only\)", text, re.IGNORECASE)
+    match = re.search(r"Rupees\s*([\w\s]+)\s*[.]?Only", text, re.IGNORECASE)
     if match:
         entities["BG Amount (in Words)"] = match.group(1).strip()
     else:
         entities["BG Amount (in Words)"] = None
 
     # Extract BG Amount (in Numbers)
-    matches = re.findall(r"(\d[0-9],\d[0-9]*)", text, re.IGNORECASE)
+    matches = re.search(r"(?:Rs \. ?|INR)\s*([\d,]+(?:\s*,\s*\d{2,3})*)\s*(?:/-)?", text, re.IGNORECASE)
     if matches:
-        entities["BG Amount (in Numbers)"] = list(set(matches))
+        entities["BG Amount (in Numbers)"] = matches.group(1).strip().replace(' ','')
     else:
         entities["BG Amount (in Numbers)"] = None
 
@@ -288,6 +289,15 @@ def main():
     logging.info("\nExtracted Entities:")
     for key, value in entities.items():
         logging.info(f"{key}: {value if value else 'Not Found'}")
+
+# Save extracted entities to a JSON file
+    json_file_name = "extracted_data.json"
+    try:
+        with open(json_file_name, 'w', encoding='utf-8') as json_file:
+            json.dump(entities, json_file, ensure_ascii=False, indent=4)
+        logging.info(f"Extracted entities saved to {json_file_name}")
+    except Exception as e:
+        logging.error(f"Failed to save extracted entities to {json_file_name}: {e}")
 
 
 if __name__ == "__main__":

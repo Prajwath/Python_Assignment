@@ -10,6 +10,7 @@ import io
 import cv2
 import numpy as np
 from datetime import datetime
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -288,6 +289,15 @@ def main():
     logging.info("\nExtracted Entities:")
     for key, value in entities.items():
         logging.info(f"{key}: {value if value else 'Not Found'}")
+
+# Save extracted entities to a JSON file
+    json_file_name = "extracted_data.json"
+    try:
+        with open(json_file_name, 'w', encoding='utf-8') as json_file:
+            json.dump(entities, json_file, ensure_ascii=False, indent=4)
+        logging.info(f"Extracted entities saved to {json_file_name}")
+    except Exception as e:
+        logging.error(f"Failed to save extracted entities to {json_file_name}: {e}")
 
 
 if __name__ == "__main__":
